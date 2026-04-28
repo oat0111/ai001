@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Teachable Machine</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #1daefc;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        flex-direction: column;
+    }
+
+    .container {
+        display: none;
+        align-items: center;
+        gap: 30px;
+        margin-top: 20px;
+    }
+
+    #webcam-container canvas {
+        border-radius: 16px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    #label-container {
+        background: white;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        min-width: 200px;
+    }
+
+    #label-container div {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+
+    button {
+        padding: 14px 28px;
+        font-size: 18px;
+        border: none;
+        border-radius: 999px;
+        background: black;
+        color: white;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    button:hover {
+        opacity: 0.8;
+    }
+</style>
+</head>
+
+<body>
+
+<button id="startBtn" onclick="init()">Start</button>
+
+<div class="container" id="mainContent">
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+</div>
+
+<script>
+const URL = "https://teachablemachine.withgoogle.com/models/lUince2Fi/";
+
+let model, webcam, labelContainer, maxPredictions;
+
+async function init() {
+    document.getElementById("startBtn").style.display = "none";
+    document.getElementById("mainContent").style.display = "flex";
+
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
+
+    const flip = true;
+    webcam = new tmImage.Webcam(250, 250, flip);
+    await webcam.setup();
+    await webcam.play();
+    window.requestAnimationFrame(loop);
+
+    document.getElementById("webcam-container").appendChild(webcam.canvas);
+
+    labelContainer = document.getElementById("label-container");
+    for (let i = 0; i < maxPredictions; i++) {
+        labelContainer.appendChild(document.createElement("div"));
+    }
+}
+
+async function loop() {
+    webcam.update();
+    await predict();
+    window.requestAnimationFrame(loop);
+}
+
+async function predict() {
+    const prediction = await model.predict(webcam.canvas);
+
+    for (let i = 0; i < maxPredictions; i++) {
+        const prob = (prediction[i].probability * 100).toFixed(0);
+        labelContainer.childNodes[i].innerHTML =
+            `${prediction[i].className} : ${prob}%`;
+    }
+}
+</script>
+
+</body>
+</html>
